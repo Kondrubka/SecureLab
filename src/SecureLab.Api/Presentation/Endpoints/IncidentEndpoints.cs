@@ -23,7 +23,8 @@ public static class IncidentEndpoints
 
         group.MapGet("/severity-summary", GetSeveritySummaryAsync)
             .WithName("GetIncidentSeveritySummary")
-            .Produces<IReadOnlyList<IncidentSeveritySummaryResponse>>();
+            .Produces<IReadOnlyList<IncidentSeveritySummaryResponse>>()
+            .ProducesValidationProblem();
 
         return endpoints;
     }

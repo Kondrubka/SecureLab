@@ -18,13 +18,25 @@ GET {{host}}/api/incidents/{{aliceIncidentId}}
 Accept: application/json
 
 ### Missing resource: expected 404 Problem Details
-GET {{host}}/api/incidents/99999999-9999-9999-9999-999999999999
+GET {{host}}/api/incidents/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
 Accept: application/json
 
 ### Invalid filter: expected 400 Validation Problem Details
 GET {{host}}/api/incidents?status=Unknown
 Accept: application/json
 
-### Lab 1 extension point: expected 501 before student implementation
+### Severity summary: expected 200 OK
 GET {{host}}/api/incidents/severity-summary
+Accept: application/json
+
+### Summary filtered by New: expected 200 OK, Low count 1 on seed data
+GET {{host}}/api/incidents/severity-summary?status=New
+Accept: application/json
+
+### Empty summary: expected 200 OK and [] on seed data
+GET {{host}}/api/incidents/severity-summary?status=Resolved
+Accept: application/json
+
+### Invalid summary filter: expected 400 Validation Problem Details
+GET {{host}}/api/incidents/severity-summary?status=Unknown
 Accept: application/json
