@@ -9,22 +9,79 @@ public static class Lab02Endpoints
 {
     public static void MapLab02Endpoints(this WebApplication app)
     {
-        app.MapGet("/api/incidents/search", async (string? q, string? sortBy, SecureLabDbContext db, CancellationToken ct) =>
+        app.MapGet("/api/incidents/search", async (
+    string? q,
+    string? sortBy,
+    SecureLabDbContext db,
+    CancellationToken ct) =>
+{
+    var query = db.Incidents
+        .AsNoTracking()
+        .AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var search = q.Trim()
+            .Replace(@"\", @"\\")
+            .Replace("%", @"\%")
+            .Replace("_", @"\_");
+
+        var pattern = $"%{search}%";
+
+        query = query.Where(i =>
+            EF.Functions.ILike(i.Title, pattern, @"\") ||
+            EF.Functions.ILike(i.Description, pattern, @"\"));
+    }
+
+    query = sortBy switch
+    {
+        null or "" or "createdAtUtc" => query
+            .OrderByDescending(i => i.CreatedAtUtc)
+            .ThenBy(i => i.Id),
+
+        "severity" => query
+            .OrderByDescending(i => i.Severity == IncidentSeverity.Critical ? 4 :
+                                    i.Severity == IncidentSeverity.High ? 3 :
+                                    i.Severity == IncidentSeverity.Medium ? 2 : 1)
+            .ThenBy(i => i.Id),
+
+        "status" => query
+            .OrderBy(i => i.Status == IncidentStatus.New ? 1 :
+                          i.Status == IncidentStatus.Triaged ? 2 :
+                          i.Status == IncidentStatus.InProgress ? 3 :
+                          i.Status == IncidentStatus.Resolved ? 4 : 5)
+            .ThenBy(i => i.Id),
+
+        _ => null!
+    };
+
+    if (query is null)
+    {
+        return Results.ValidationProblem(
+            new Dictionary<string, string[]>
+            {
+                ["sortBy"] =
+                [
+                    "Допустимі значення: createdAtUtc, severity, status."
+                ]
+            });
+    }
+
+    var rows = await query
+        .Take(50)
+        .Select(row => new
         {
-            var order = sortBy switch
-            {
-                null or "" or "createdAtUtc" => "created_at_utc DESC",
-                "severity" => "severity", "status" => "status", _ => sortBy
-            };
-            var sql = "SELECT * FROM incidents WHERE title ILIKE '%" + (q ?? "")
-                + "%' OR description ILIKE '%" + (q ?? "") + "%' ORDER BY " + order + " LIMIT 50";
-            var rows = await db.Incidents.FromSqlRaw(sql).AsNoTracking().ToListAsync(ct);
-            return Results.Ok(rows.Select(row => new
-            {
-                row.Id, row.Title, row.Description,
-                Severity = row.Severity.ToString(), Status = row.Status.ToString(), row.CreatedAtUtc
-            }));
-        });
+            row.Id,
+            row.Title,
+            row.Description,
+            Severity = row.Severity.ToString(),
+            Status = row.Status.ToString(),
+            row.CreatedAtUtc
+        })
+        .ToListAsync(ct);
+
+    return Results.Ok(rows);
+});
         app.MapPost("/api/incidents", async (
     CreateIncidentRequest request,
     SecureLabDbContext db,
