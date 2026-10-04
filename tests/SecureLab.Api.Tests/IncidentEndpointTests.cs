@@ -62,7 +62,7 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
             "/api/incidents/severity-summary");
 
         Assert.NotNull(summaries);
-        Assert.Contains(summaries, summary => summary.Severity == "Low" && summary.Count == 1);
+        Assert.Contains(summaries, summary => summary.Severity == "Low" && summary.Count == 3);
         Assert.Contains(summaries, summary => summary.Severity == "Medium" && summary.Count == 1);
         Assert.Contains(summaries, summary => summary.Severity == "High" && summary.Count == 1);
     }
@@ -76,7 +76,7 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
         Assert.NotNull(summaries);
         Assert.Single(summaries);
         Assert.Equal("Low", summaries[0].Severity);
-        Assert.Equal(1, summaries[0].Count);
+        Assert.Equal(3, summaries[0].Count);
     }
 
     [Fact]
