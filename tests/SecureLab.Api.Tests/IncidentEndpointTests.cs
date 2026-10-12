@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SecureLab.Api.Data;
 using SecureLab.Api.Presentation.Contracts;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace SecureLab.Api.Tests;
 
@@ -54,29 +56,19 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
         Assert.Contains("textContent", script, StringComparison.Ordinal);
     }
 
-    
+
     [Fact]
     public async Task GetSeveritySummary_WithoutStatus_ReturnsAllSeverityGroups()
     {
-        var summaries = await _client.GetFromJsonAsync<List<IncidentSeveritySummaryResponse>>(
-            "/api/incidents/severity-summary");
-
-        Assert.NotNull(summaries);
-        Assert.Contains(summaries, summary => summary.Severity == "Low" && summary.Count == 3);
-        Assert.Contains(summaries, summary => summary.Severity == "Medium" && summary.Count == 1);
-        Assert.Contains(summaries, summary => summary.Severity == "High" && summary.Count == 1);
+        await AssertSeveritySummaryMatchesDatabaseAsync(
+            "/api/incidents/severity-summary", null);
     }
 
     [Fact]
     public async Task GetSeveritySummary_WithNewStatus_ReturnsOnlyMatchingIncidents()
     {
-        var summaries = await _client.GetFromJsonAsync<List<IncidentSeveritySummaryResponse>>(
-            "/api/incidents/severity-summary?status=New");
-
-        Assert.NotNull(summaries);
-        Assert.Single(summaries);
-        Assert.Equal("Low", summaries[0].Severity);
-        Assert.Equal(3, summaries[0].Count);
+        await AssertSeveritySummaryMatchesDatabaseAsync(
+            "/api/incidents/severity-summary?status=New", "New");
     }
 
     [Fact]
@@ -95,6 +87,41 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
             "/api/incidents/severity-summary?status=Resolved");
 
         Assert.NotNull(summaries);
+        Assert.Equal(
+    summaries.Count,
+    summaries.Select(item => item.Severity).Distinct().Count());
         Assert.Empty(summaries);
+    }
+
+    private async Task AssertSeveritySummaryMatchesDatabaseAsync(
+    string endpoint, string? status)
+    {
+        var summaries = await _client.GetFromJsonAsync<
+            List<IncidentSeveritySummaryResponse>>(endpoint);
+
+        Assert.NotNull(summaries);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider
+            .GetRequiredService<SecureLabDbContext>();
+
+        var incidents = await db.Incidents.AsNoTracking()
+            .Select(i => new { i.Severity, i.Status })
+            .ToListAsync();
+
+        var expected = incidents
+            .Where(i => status is null || i.Status.ToString() == status)
+            .GroupBy(i => i.Severity.ToString())
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        Assert.Equal(expected.Count, summaries.Count);
+
+        foreach (var summary in summaries)
+        {
+            Assert.True(expected.TryGetValue(
+                summary.Severity, out var count));
+
+            Assert.Equal(count, summary.Count);
+        }
     }
 }
