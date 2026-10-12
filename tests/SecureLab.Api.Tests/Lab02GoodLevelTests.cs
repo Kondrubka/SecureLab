@@ -9,17 +9,22 @@ namespace SecureLab.Api.Tests;
 public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
 {
     private readonly SecureLabApiFactory _factory;
-    private readonly HttpClient _client;
+
+    private static string StudyPassword =>
+        Environment.GetEnvironmentVariable("SeedUsers__Password")
+        ?? throw new InvalidOperationException(
+            "Set local SeedUsers__Password outside Git.");
 
     public Lab02GoodLevelTests(SecureLabApiFactory factory)
     {
         _factory = factory;
-        _client = factory.CreateClient();
     }
 
     [Fact]
     public async Task T02_InvalidSeverity_ReturnsBadRequest()
     {
+        using var client = await _factory.LoginAsync(
+    "alice", StudyPassword);
         var request = new
         {
             title = $"Invalid-{Guid.NewGuid():N}",
@@ -28,7 +33,7 @@ public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
             occurredAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1)
         };
 
-        using var response = await _client.PostAsJsonAsync(
+        using var response = await client.PostAsJsonAsync(
             "/api/incidents",
             request);
 
@@ -45,6 +50,8 @@ public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
     [Fact]
     public async Task T03_DuplicateActiveTitle_ReturnsConflict()
     {
+        using var client = await _factory.LoginAsync(
+    "alice", StudyPassword);
         var title = $"Regression-{Guid.NewGuid():N}";
 
         var request = new
@@ -59,7 +66,7 @@ public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
 
         try
         {
-            using var firstResponse = await _client.PostAsJsonAsync(
+            using var firstResponse = await client.PostAsJsonAsync(
                 "/api/incidents",
                 request);
 
@@ -72,7 +79,7 @@ public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
 
             createdId = firstContent.Id;
 
-            using var secondResponse = await _client.PostAsJsonAsync(
+            using var secondResponse = await client.PostAsJsonAsync(
                 "/api/incidents",
                 request);
 
