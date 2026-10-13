@@ -4,6 +4,7 @@ using SecureLab.Api.Data.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using System.Security.Claims;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace SecureLab.Api.Scaffolding;
 
@@ -79,13 +80,26 @@ public static class Lab03Identity
 
     var result = await users.CreateAsync(user, input.Password);
 
+
     if (!result.Succeeded)
     {
+        var isDuplicate = result.Errors.Any(error =>
+            error.Code is "DuplicateUserName" or "DuplicateEmail");
+
+        if (isDuplicate)
+        {
+            return Results.Conflict(new
+            {
+                message = "Registration failed"
+            });
+        }
+
         return Results.BadRequest(new
         {
             message = "Registration failed"
         });
     }
+
 
     var role = await users.AddToRoleAsync(user, DbSeeder.ReporterRole);
 
@@ -98,15 +112,62 @@ public static class Lab03Identity
     return Results.Created("/api/me",
         new RegistrationResponse(user.Id, userName, displayName));
 });
-        app.MapPost("/api/auth/login", async (LoginInput input, SignInManager<ApplicationUser> signIn) =>
+
+        app.MapPost("/api/auth/login", async (
+            LoginInput input,
+            SignInManager<ApplicationUser> signIn,
+            HttpContext httpContext,
+            ILoggerFactory loggerFactory) =>
         {
-            if (string.IsNullOrWhiteSpace(input.UserName) || string.IsNullOrEmpty(input.Password))
+            var logger = loggerFactory.CreateLogger("SecureLab.Auth");
+
+            if (string.IsNullOrWhiteSpace(input.UserName) ||
+                string.IsNullOrEmpty(input.Password))
+            {
+                logger.LogWarning(
+                    "Authentication event {EventType} {Result} {TraceId}",
+                    "Login",
+                    "Denied",
+                    httpContext.TraceIdentifier);
+
                 return Results.Unauthorized();
-            var result = await signIn.PasswordSignInAsync(input.UserName, input.Password, false, false);
-            return result.Succeeded ? Results.NoContent() : Results.Unauthorized();
-        });
-        app.MapPost("/api/auth/logout", () => Results.StatusCode(StatusCodes.Status501NotImplemented));
-        // Навмисно хибна навчальна довіра: ЛР 03 замінює заявлений id на verified principal.
+            }
+
+            var result = await signIn.PasswordSignInAsync(
+                input.UserName,
+                input.Password,
+                false,
+                false);
+
+            if (!result.Succeeded)
+            {
+                logger.LogWarning(
+                    "Authentication event {EventType} {Result} {TraceId}",
+                    "Login",
+                    "Denied",
+                    httpContext.TraceIdentifier);
+
+                return Results.Unauthorized();
+            }
+
+            logger.LogInformation(
+                "Authentication event {EventType} {Result} {TraceId}",
+                "Login",
+                "Success",
+                httpContext.TraceIdentifier);
+
+            return Results.NoContent();
+        }).RequireRateLimiting("login-limit");
+
+
+        app.MapPost("/api/auth/logout", async (
+            SignInManager<ApplicationUser> signInManager) =>
+        {
+            await signInManager.SignOutAsync();
+
+            return Results.NoContent();
+        }).RequireAuthorization();
+
         app.MapGet("/api/me", GetCurrentUser)
     .RequireAuthorization();
         // Приклад лише mechanics: не повертає identity і не реалізує оцінювану operation.

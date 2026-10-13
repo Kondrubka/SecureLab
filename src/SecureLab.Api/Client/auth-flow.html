@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SecureLab — Authentication Flow</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 850px;
+            margin: 30px auto;
+            padding: 0 20px;
+            background: #f5f7fb;
+            color: #202938;
+        }
+        section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 18px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        input, select, textarea, button {
+            display: block;
+            padding: 9px;
+            margin: 8px 0 14px;
+            box-sizing: border-box;
+            width: 100%;
+            font: inherit;
+        }
+        button {
+            background: #2458a6;
+            color: white;
+            border: 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        pre {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: #eef2f7;
+            padding: 12px;
+            border-radius: 5px;
+        }
+    </style>
+    <script src="/auth-flow.js" defer></script>
+</head>
+<body>
+    <h1>SecureLab — Authentication Flow</h1>
+    <p>Навчальна перевірка реєстрації, входу, профілю, створення інциденту та виходу.</p>
+
+    <section>
+        <h2>1. Поточний сеанс</h2>
+        <button id="checkProfile" type="button">Перевірити /api/me</button>
+        <pre id="profileResult">Очікування перевірки...</pre>
+    </section>
+
+    <section>
+        <h2>2. Реєстрація</h2>
+        <form id="registerForm">
+            <input name="userName" placeholder="Ім'я користувача" required>
+            <input name="email" type="email" placeholder="Email" required>
+            <input name="displayName" placeholder="Відображуване ім'я" required>
+            <input name="password" type="password" placeholder="Пароль" required>
+            <button type="submit">Зареєструвати</button>
+        </form>
+        <pre id="registerResult">Очікування...</pre>
+    </section>
+
+    <section>
+        <h2>3. Вхід</h2>
+        <form id="loginForm">
+            <input name="userName" placeholder="Ім'я користувача" required>
+            <input name="password" type="password" placeholder="Пароль" required>
+            <button type="submit">Увійти</button>
+        </form>
+        <pre id="loginResult">Очікування...</pre>
+    </section>
+
+    <section>
+        <h2>4. Створення інциденту</h2>
+        <form id="incidentForm">
+            <input name="title" placeholder="Назва інциденту" required>
+            <textarea name="description" placeholder="Опис" required></textarea>
+            <select name="severity">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+            <input name="occurredAtUtc" type="datetime-local" required>
+            <button type="submit">Створити інцидент</button>
+        </form>
+        <pre id="incidentRequest">JSON запиту ще не сформовано.</pre>
+        <pre id="incidentResult">Очікування...</pre>
+    </section>
+
+    <section>
+        <h2>5. Вихід</h2>
+        <button id="logoutButton" type="button">Вийти</button>
+        <pre id="logoutResult">Очікування...</pre>
+    </section>
+</body>
+</html>
