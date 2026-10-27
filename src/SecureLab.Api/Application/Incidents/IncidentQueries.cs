@@ -31,6 +31,19 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
             .ToListAsync(cancellationToken);
     }
 
+
+    public Task<Guid?> GetOwnerIdAsync(
+        Guid incidentId,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.Incidents
+            .AsNoTracking()
+            .Where(incident => incident.Id == incidentId)
+            .Select(incident => (Guid?)incident.OwnerUserId)
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+
     public Task<IncidentDetailsResponse?> GetDetailsAsync(Guid id, CancellationToken cancellationToken)
     {
         logger.LogInformation("Loading incident {IncidentId}", id);
@@ -59,40 +72,40 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
             .SingleOrDefaultAsync(cancellationToken);
     }
 
-    
-public async Task<IReadOnlyList<IncidentSeveritySummaryResponse>> GetSeveritySummaryAsync(
-    IncidentStatus? status,
-    CancellationToken cancellationToken)
-{
-    var incidents = dbContext.Incidents
-        .AsNoTracking();
 
-    if (status.HasValue)
+    public async Task<IReadOnlyList<IncidentSeveritySummaryResponse>> GetSeveritySummaryAsync(
+        IncidentStatus? status,
+        CancellationToken cancellationToken)
     {
-        incidents = incidents.Where(incident => incident.Status == status.Value);
-    }
+        var incidents = dbContext.Incidents
+            .AsNoTracking();
 
-    var summaries = await incidents
-        .GroupBy(incident => incident.Severity)
-        .Select(group => new
+        if (status.HasValue)
         {
-            Severity = group.Key,
-            Count = group.Count()
-        })
-        .ToListAsync(cancellationToken);
+            incidents = incidents.Where(incident => incident.Status == status.Value);
+        }
 
-    var result = summaries
-        .OrderBy(summary => summary.Severity)
-        .Select(summary => new IncidentSeveritySummaryResponse(
-            summary.Severity.ToString(),
-            summary.Count))
-        .ToList();
+        var summaries = await incidents
+            .GroupBy(incident => incident.Severity)
+            .Select(group => new
+            {
+                Severity = group.Key,
+                Count = group.Count()
+            })
+            .ToListAsync(cancellationToken);
 
-    logger.LogInformation(
-        "Loaded incident severity summary with {GroupCount} groups for status {Status}",
-        result.Count,
-        status?.ToString() ?? "All");
+        var result = summaries
+            .OrderBy(summary => summary.Severity)
+            .Select(summary => new IncidentSeveritySummaryResponse(
+                summary.Severity.ToString(),
+                summary.Count))
+            .ToList();
 
-    return result;
-}
+        logger.LogInformation(
+            "Loaded incident severity summary with {GroupCount} groups for status {Status}",
+            result.Count,
+            status?.ToString() ?? "All");
+
+        return result;
+    }
 }

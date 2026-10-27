@@ -1,6 +1,8 @@
 using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data.Entities;
 using SecureLab.Api.Presentation.Contracts;
+using System.Security.Claims;
+using SecureLab.Api.Data;
 
 namespace SecureLab.Api.Presentation.Endpoints;
 
@@ -17,9 +19,10 @@ public static class IncidentEndpoints
             .ProducesValidationProblem();
 
         group.MapGet("/{id:guid}", GetDetailsAsync)
-            .WithName("GetIncidentDetails")
-            .Produces<IncidentDetailsResponse>()
-            .ProducesProblem(StatusCodes.Status404NotFound);
+    .WithName("GetIncidentDetails")
+    .Produces<IncidentDetailsResponse>()
+    .ProducesProblem(StatusCodes.Status404NotFound)
+    .RequireAuthorization();
 
         group.MapGet("/severity-summary", GetSeveritySummaryAsync)
             .WithName("GetIncidentSeveritySummary")
@@ -51,31 +54,62 @@ public static class IncidentEndpoints
         return Results.Ok(await queries.GetListAsync(parsedStatus, cancellationToken));
     }
 
+
     private static async Task<IResult> GetDetailsAsync(
         Guid id,
+        HttpContext httpContext,
         IncidentQueries queries,
         CancellationToken cancellationToken)
     {
-        var incident = await queries.GetDetailsAsync(id, cancellationToken);
+        var userIdValue = httpContext.User.FindFirstValue(
+            ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdValue, out var userId))
+        {
+            return Results.Challenge();
+        }
+
+        var ownerId = await queries.GetOwnerIdAsync(
+            id, cancellationToken);
+
+        if (ownerId is null)
+        {
+            return Results.Problem(
+                title: "Інцидент не знайдено",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        var isOwner = ownerId.Value == userId;
+        var isAnalyst = httpContext.User.IsInRole(
+            DbSeeder.AnalystRole);
+
+        if (!isOwner && !isAnalyst)
+        {
+            return Results.Forbid();
+        }
+
+        var incident = await queries.GetDetailsAsync(
+            id, cancellationToken);
+
         return incident is null
             ? Results.Problem(
                 title: "Інцидент не знайдено",
-                detail: $"Інцидент '{id}' не існує.",
                 statusCode: StatusCodes.Status404NotFound)
             : Results.Ok(incident);
     }
+
 
     private static async Task<IResult> GetSeveritySummaryAsync(
     string? status,
     IncidentQueries queries,
     CancellationToken cancellationToken)
     {
-    IncidentStatus? parsedStatus = null;
+        IncidentStatus? parsedStatus = null;
 
-    if (status is not null)
-    {
-        var allowedStatuses = new[]
+        if (status is not null)
         {
+            var allowedStatuses = new[]
+            {
             IncidentStatus.New,
             IncidentStatus.Triaged,
             IncidentStatus.InProgress,
@@ -83,28 +117,28 @@ public static class IncidentEndpoints
             IncidentStatus.Closed
         };
 
-        if (!Enum.TryParse<IncidentStatus>(
-                status,
-                ignoreCase: true,
-                out var candidate)
-            || !allowedStatuses.Contains(candidate))
-        {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            if (!Enum.TryParse<IncidentStatus>(
+                    status,
+                    ignoreCase: true,
+                    out var candidate)
+                || !allowedStatuses.Contains(candidate))
             {
-                ["status"] =
-                [
-                    "Допустимі значення: New, Triaged, InProgress, Resolved, Closed."
-                ]
-            });
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["status"] =
+                    [
+                        "Допустимі значення: New, Triaged, InProgress, Resolved, Closed."
+                    ]
+                });
+            }
+
+            parsedStatus = candidate;
         }
 
-        parsedStatus = candidate;
-    }
+        var summary = await queries.GetSeveritySummaryAsync(
+            parsedStatus,
+            cancellationToken);
 
-    var summary = await queries.GetSeveritySummaryAsync(
-        parsedStatus,
-        cancellationToken);
-
-    return Results.Ok(summary);
+        return Results.Ok(summary);
     }
 }

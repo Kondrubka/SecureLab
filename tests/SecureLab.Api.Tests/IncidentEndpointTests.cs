@@ -13,6 +13,11 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 
+    private static string SeedPassword =>
+    Environment.GetEnvironmentVariable("SeedUsers__Password")
+    ?? throw new InvalidOperationException(
+        "SeedUsers__Password is not configured.");
+
     [Fact]
     public async Task GetList_ReturnsSeededIncidents()
     {
@@ -24,28 +29,44 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
         Assert.Contains(incidents, incident => incident.Id == DbSeeder.BobIncidentId);
     }
 
+
     [Fact]
     public async Task GetDetails_ForUnknownId_ReturnsProblemDetails404()
     {
-        using var response = await _client.GetAsync($"/api/incidents/{Guid.NewGuid()}");
+        using var client = await factory.LoginAsync("alice", SeedPassword);
+
+        using var response = await client.GetAsync(
+            $"/api/incidents/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(
+            "application/problem+json",
+            response.Content.Headers.ContentType?.MediaType);
     }
+
+
 
     [Fact]
     public async Task GetDetails_DoesNotExposeInternalOwnerFields()
     {
-        using var response = await _client.GetAsync(
+        using var client = await factory.LoginAsync("alice", SeedPassword);
+
+        using var response = await client.GetAsync(
             $"/api/incidents/{DbSeeder.AliceIncidentId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
         var json = await response.Content.ReadAsStringAsync();
         using var document = JsonDocument.Parse(json);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.False(document.RootElement.TryGetProperty("ownerUserId", out _));
         Assert.False(document.RootElement.TryGetProperty("email", out _));
-        Assert.Equal("Аліса Коваль", document.RootElement.GetProperty("ownerDisplayName").GetString());
+
+        Assert.Equal(
+            "Аліса Коваль",
+            document.RootElement.GetProperty("ownerDisplayName").GetString());
     }
+
 
     [Fact]
     public async Task ClientScript_DoesNotUseDangerousInnerHtmlSink()
@@ -92,6 +113,64 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
     summaries.Select(item => item.Severity).Distinct().Count());
         Assert.Empty(summaries);
     }
+
+
+    [Fact]
+    public async Task A02_OwnerCanReadOwnIncident()
+    {
+        using var client = await factory.LoginAsync("alice", SeedPassword);
+
+        using var response = await client.GetAsync(
+            $"/api/incidents/{DbSeeder.AliceIncidentId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(
+            DbSeeder.AliceIncidentId,
+            document.RootElement.GetProperty("id").GetGuid());
+    }
+
+    [Fact]
+    public async Task A03_NonOwnerCannotReadForeignIncident()
+    {
+        using var client = await factory.LoginAsync("alice", SeedPassword);
+
+        using var response = await client.GetAsync(
+            $"/api/incidents/{DbSeeder.BobIncidentId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+        Assert.Equal(
+            "application/problem+json",
+            response.Content.Headers.ContentType?.MediaType);
+
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.DoesNotContain("Боб Мельник", body);
+        Assert.DoesNotContain("Невідома спроба входу", body);
+    }
+
+    [Fact]
+    public async Task A03R_AnalystCanReadForeignIncident()
+    {
+        using var client = await factory.LoginAsync("morgan", SeedPassword);
+
+        using var response = await client.GetAsync(
+            $"/api/incidents/{DbSeeder.AliceIncidentId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(
+            DbSeeder.AliceIncidentId,
+            document.RootElement.GetProperty("id").GetGuid());
+    }
+
 
     private async Task AssertSeveritySummaryMatchesDatabaseAsync(
     string endpoint, string? status)
