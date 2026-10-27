@@ -56,7 +56,9 @@ builder.Services.AddRateLimiter(options =>
                 ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 12,
+                PermitLimit = builder.Environment.IsDevelopment()
+    ? builder.Configuration.GetValue<int?>("Testing:LoginPermitLimit") ?? 12
+    : 12,
                 Window = TimeSpan.FromSeconds(10),
                 QueueLimit = 0,
                 AutoReplenishment = true

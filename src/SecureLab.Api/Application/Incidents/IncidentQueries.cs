@@ -7,16 +7,31 @@ namespace SecureLab.Api.Application.Incidents;
 
 public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<IncidentQueries> logger)
 {
+
     public async Task<IReadOnlyList<IncidentListItemResponse>> GetListAsync(
         IncidentStatus? status,
+        Guid userId,
+        bool canReadAll,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Loading incidents with status filter {Status}", status);
+        logger.LogInformation(
+            "Loading authorized incidents with status filter {Status}",
+            status);
 
         var query = dbContext.Incidents.AsNoTracking();
+
+        // Reporter бачить лише власні інциденти.
+        // Analyst може переглядати всі інциденти.
+        if (!canReadAll)
+        {
+            query = query.Where(incident =>
+                incident.OwnerUserId == userId);
+        }
+
         if (status is not null)
         {
-            query = query.Where(incident => incident.Status == status);
+            query = query.Where(incident =>
+                incident.Status == status.Value);
         }
 
         return await query
@@ -44,7 +59,10 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
     }
 
 
-    public Task<IncidentDetailsResponse?> GetDetailsAsync(Guid id, CancellationToken cancellationToken)
+    public Task<IncidentDetailsResponse?> GetDetailsAsync(
+    Guid id,
+    CancellationToken cancellationToken,
+    bool includeInternal = false)
     {
         logger.LogInformation("Loading incident {IncidentId}", id);
 
@@ -61,7 +79,7 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
                 incident.CreatedAtUtc,
                 incident.Owner.DisplayName,
                 incident.Comments
-                    .Where(comment => !comment.IsInternal)
+                    .Where(comment => includeInternal || !comment.IsInternal)
                     .OrderBy(comment => comment.CreatedAtUtc)
                     .Select(comment => new IncidentCommentResponse(
                         comment.Id,

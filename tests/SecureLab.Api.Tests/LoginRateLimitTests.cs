@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace SecureLab.Api.Tests;
 
@@ -12,7 +14,19 @@ public sealed class LoginRateLimitTests(
     public async Task LoginRateLimit_Returns429_AndRecovers()
     {
         // Створюємо окремий сервер для незалежної перевірки.
-        using var host = factory.WithWebHostBuilder(_ => { });
+
+        using var host = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configuration) =>
+            {
+                configuration.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["Testing:LoginPermitLimit"] = "12"
+                    });
+            });
+        });
+
 
         using var client = host.CreateClient(
             new WebApplicationFactoryClientOptions
