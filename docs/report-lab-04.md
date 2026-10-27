@@ -146,8 +146,8 @@ dotnet test tests/SecureLab.Api.Tests/SecureLab.Api.Tests.csproj --configuration
 - `v0.3.0`: `d5dc45d` (відправний стан).
 - Vulnerable state: `0fb0cdd` (`Document vulnerable IDOR baseline for Lab 4`).
 - First fix: `b6071c5` (`Fix incident IDOR and add authorization tests`).
-- **Фінальний fixed commit / tag `v0.4.0`: записати лише після перевірки `git log`, `git status` і створення тегу.**
-- До відправлення: перевірити `git diff --check`, повторити 33/33, зафіксувати два оновлені Markdown-файли, код і тести, перевірити clean working tree, створити тег.
+- **Фінальний fixed commit / tag `v0.4.0`:** `f8dfe14` (`f8dfe14ce15693b12539256cca9ef27220518ace`). Команди `git rev-parse HEAD` і `git rev-list -n 1 v0.4.0` повернули однаковий hash; після створення тегу `git status --short` був порожнім.
+- Локально перевірено `git diff --check`, фінальні 33/33 тести, commit `f8dfe14`, анотований тег `v0.4.0` та чисте робоче дерево. Відправлення на GitHub виконується окремо після звірки документації.
 
 ## Використання допоміжних інструментів
 

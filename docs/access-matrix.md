@@ -46,7 +46,7 @@
 
 **Після виправлення.** Та сама дія повертає `403` і не розкриває чужий DTO. Alice -> власний інцидент `200`; Morgan -> Alice `200`; Anonymous -> details `401`. Для mutating endpoints перевірка прав стоїть **перед** `SaveChangesAsync`; A-04 доводить відсутність змін чужого інциденту.
 
-**Історія Git:** baseline `v0.3.0` (`d5dc45d`); vulnerable commit `0fb0cdd`; первинний fixed commit `b6071c5` (details IDOR і tests). Остаточний commit рівня «Добре» та тег `v0.4.0` - **дописати після фінальної фіксації**.
+**Історія Git:** baseline `v0.3.0` (`d5dc45d`); vulnerable commit `0fb0cdd`; первинний fixed commit `b6071c5` (details IDOR і tests). Остаточний commit рівня «Добре»: `f8dfe14` (повний hash `f8dfe14ce15693b12539256cca9ef27220518ace`), анотований тег `v0.4.0` вказує на цей commit. Документи з повним hash зафіксовані наступним documentation-only commit.
 
 ## Результати перевірок
 
