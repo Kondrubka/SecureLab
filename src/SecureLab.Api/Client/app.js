@@ -123,7 +123,7 @@ async function loadSeveritySummary() {
 
     const summaries = await apiFetch(
       `/api/incidents/severity-summary${query}`,
-);
+    );
 
     if (summaries.length === 0) {
       summaryStatusElement.textContent = "Даних для зведення немає.";
@@ -137,9 +137,9 @@ async function loadSeveritySummary() {
     }
 
     summaryStatusElement.textContent = "Зведення успішно завантажено.";
-  } catch (error) {
+  } catch {
     summaryStatusElement.textContent =
-      `Помилка завантаження зведення: ${error.message}`;
+      "Не вдалося завантажити зведення. Спробуйте ще раз.";
   } finally {
     summaryButton.disabled = false;
   }
