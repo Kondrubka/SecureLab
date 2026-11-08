@@ -14,6 +14,16 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 });
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Lab05Cors", policy =>
+    {
+        policy.WithOrigins("http://localhost:4173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 var connectionString = builder.Configuration.GetConnectionString("SecureLab")
     ?? throw new InvalidOperationException(
@@ -79,12 +89,32 @@ if (resetRequested)
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers.XContentTypeOptions = "nosniff";
     context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+
+    var path = context.Request.Path.Value?.ToLowerInvariant();
+
+    if (path is "/" or "/index.html" or "/auth-lab.html"
+        or "/auth-flow.html" or "/browser-lab.html")
+    {
+        context.Response.Headers["Content-Security-Policy"] =
+            "default-src 'self'; " +
+            "script-src 'self'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "connect-src 'self'; " +
+            "img-src 'self' data:; " +
+            "object-src 'none'; " +
+            "base-uri 'none'; " +
+            "frame-ancestors 'none'; " +
+            "form-action 'self'";
+    }
+
     await next(context);
 });
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -93,6 +123,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseCors("Lab05Cors");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
