@@ -14,16 +14,19 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 });
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
-builder.Services.AddCors(options =>
+if (builder.Environment.IsDevelopment())
 {
-    options.AddPolicy("Lab05Cors", policy =>
+    builder.Services.AddCors(options =>
     {
-        policy.WithOrigins("http://localhost:4173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        options.AddPolicy("Lab05Cors", policy =>
+        {
+            policy.WithOrigins("http://localhost:4173")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
     });
-});
+}
 
 var connectionString = builder.Configuration.GetConnectionString("SecureLab")
     ?? throw new InvalidOperationException(
@@ -123,7 +126,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-app.UseCors("Lab05Cors");
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("Lab05Cors");
+}
+
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
