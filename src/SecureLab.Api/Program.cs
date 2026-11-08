@@ -18,7 +18,7 @@ if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("Lab05Cors", policy =>
+        options.AddPolicy("Lab05BrowserProbe", policy =>
         {
             policy.WithOrigins("http://localhost:4173")
                   .AllowAnyHeader()
@@ -129,7 +129,7 @@ app.UseRouting();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors("Lab05Cors");
+    app.UseCors("Lab05BrowserProbe");
 }
 
 app.UseRateLimiter();
