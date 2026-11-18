@@ -1,0 +1,10 @@
+REG-SQLI-01 — GET /api/incidents/search
+Підсумок ручної перевірки (результати PowerShell):
+
+Normal USB: HTTP 200; records=1
+No-match control: HTTP 200; records=0
+SQL injection (single quote OR 1=1 comment): HTTP 200; records=0
+LIKE percent (%): HTTP 200; records=0
+LIKE underscore (_): HTTP 200; records=0
+
+Висновок: перевірений SQLi-пейлоад не обійшов умови фільтрації. Це не є повним тестом усіх варіантів SQL injection.

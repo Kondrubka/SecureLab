@@ -1,0 +1,12 @@
+SecureLab LR06 — full regression after CSRF fix
+Date: 2026-11-17
+Evidence type: transcript of user-provided PowerShell output (not a screenshot)
+
+Passed!  - Failed:     0, Passed:    38, Skipped:     0, Total:    38, Duration: 19 s - SecureLab.Api.Tests.dll (net10.0)
+SecureLab.Api.Tests test net10.0 succeeded (21,4s)
+Test summary: total: 38; failed: 0; succeeded: 38; skipped: 0; duration: 21,3s
+Build succeeded in 24,0s
+
+git diff --check: no whitespace errors reported. Warnings only about LF -> CRLF normalization in four files.
+
+Source: user-provided console text, 2026-11-17.

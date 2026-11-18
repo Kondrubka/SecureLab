@@ -1,0 +1,20 @@
+SecureLab LR06 — F-02: GET /api/incidents/search
+Date: 2026-11-17
+Source: user-provided PowerShell console output (text transcription, not screenshot).
+
+BEFORE fix
+GET /api/incidents/search?q=zz-no-match
+15 requests; HTTP 200: 15; HTTP 429: 0
+Elapsed: 0.4615312 seconds
+
+AFTER fix (search-limit: PermitLimit=5; Window=10 seconds)
+GET /api/incidents/search?q=zz-no-match
+Requests 1–5: HTTP 200
+Requests 6–15: HTTP 429
+15 requests; HTTP 200: 5; HTTP 429: 10
+Elapsed: 0.4914941 seconds
+
+RECOVERY
+After Start-Sleep -Seconds 11, GET /api/incidents/search?q=zz-no-match -> HTTP 200
+
+Remaining checks: two independent authenticated user partitions; automated regression.
