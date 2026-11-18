@@ -35,7 +35,7 @@
 | Browser -> API | XSS | CSP та безпечні DOM-операції | CSP і DOM-тест |
 | User -> API | IDOR | IncidentAccess та авторизація | A03/A03R |
 | Client -> Search API | Надмірні запити | search-limit | REG_RATE_SEARCH_01/02 |
-| API -> PostgreSQL | SQL injection | EF Core, параметризація | Окремий payload-тест не підтверджено |
+| API -> PostgreSQL | SQL injection | EF Core, параметризація | REG-SQLI-01 PASS для перевіреного набору |
 | Git -> runtime | Витік секретів | Змінні середовища, ротація | SEC-SECRET-01/02 |
 | Dependencies -> build | Вразливі пакети | NuGet audit | DEP-AUDIT-01, PASS |
 | API -> logs | Відсутність аудиту | SecureLab.Audit | REG-AUDIT-02/03/04 |
@@ -45,7 +45,7 @@
 
 | ID | Сценарій | Фактичний стан |
 |---|---|---|
-| TM-01 | SQL injection у пошуку | Окрема цільова перевірка ще не підтверджена |
+| TM-01 | SQL injection у пошуку | REG-SQLI-01 PASS для перевіреного набору |
 | TM-02 | IDOR для інцидентів | Наявні перевірки доступу A03/A03R |
 | TM-03 | XSS у клієнті | CSP і DOM-тест; повний XSS-тест не підтверджено |
 | TM-04 | CSRF | F-01 Fixed, REG-CSRF PASS |

@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: securelab
       POSTGRES_USER: securelab
-      POSTGRES_PASSWORD: local-study-password
+      POSTGRES_PASSWORD: "${SECURELAB_POSTGRES_PASSWORD:?Set SECURELAB_POSTGRES_PASSWORD}"
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-54329}:5432"
     volumes:
