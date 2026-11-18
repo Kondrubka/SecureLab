@@ -241,12 +241,12 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
         var url = $"/api/incidents/{DbSeeder.BobIncidentId}";
 
         using var response = method == "PUT"
-            ? await client.PutAsJsonAsync(url, new
+            ? await client.PutAsJsonWithCsrfAsync(url, new
             {
                 title = "Unauthorized update",
                 description = "Modified by Alice"
             })
-            : await client.DeleteAsync(url);
+            : await client.DeleteWithCsrfAsync(url);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -299,7 +299,7 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
 
         try
         {
-            using var response = await client.PutAsJsonAsync(
+            using var response = await client.PutAsJsonWithCsrfAsync(
                 $"/api/incidents/{id}",
                 new
                 {
@@ -367,8 +367,8 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
             using var client = await factory.LoginAsync(
                 "alice", SeedPassword);
 
-            using var response = await client.PostAsync(
-                $"/api/incidents/{id}/triage", null);
+            using var response = await client.PostWithCsrfAsync(
+                $"/api/incidents/{id}/triage");
 
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
@@ -404,8 +404,8 @@ public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
             using var client = await factory.LoginAsync(
                 "morgan", SeedPassword);
 
-            using var response = await client.PostAsync(
-                $"/api/incidents/{id}/triage", null);
+            using var response = await client.PostWithCsrfAsync(
+                $"/api/incidents/{id}/triage");
 
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 

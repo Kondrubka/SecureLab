@@ -12,6 +12,6 @@ document.querySelector("#me").addEventListener("click", async () => {
   result.textContent = `${response.status}: ${await response.text()}`;
 });
 document.querySelector("#logout").addEventListener("click", async () => {
-  const response = await fetch("/api/auth/logout", { method: "POST" });
+  const response = await window.secureLabCsrfFetch("/api/auth/logout", { method: "POST" });
   result.textContent = `Logout: ${response.status}`;
 });

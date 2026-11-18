@@ -1,3 +1,4 @@
+using SecureLab.Api.Presentation.Security;
 using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data.Entities;
 using SecureLab.Api.Presentation.Contracts;
@@ -35,16 +36,16 @@ public static class IncidentEndpoints
             .WithName("UpdateIncident")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
-            .RequireAuthorization();
+            .RequireAuthorization().AddEndpointFilter<CsrfEndpointFilter>().AddEndpointFilter<SecurityAuditEndpointFilter>();
 
         group.MapDelete("/{id:guid}", DeleteIncidentAsync)
                 .WithName("DeleteIncident")
                 .Produces(StatusCodes.Status204NoContent)
-                .RequireAuthorization();
+                .RequireAuthorization().AddEndpointFilter<CsrfEndpointFilter>().AddEndpointFilter<SecurityAuditEndpointFilter>();
         group.MapPost("/{id:guid}/triage", TriageIncidentAsync)
 .WithName("TriageIncident")
 .Produces(StatusCodes.Status204NoContent)
-.RequireAuthorization();
+.RequireAuthorization().AddEndpointFilter<CsrfEndpointFilter>().AddEndpointFilter<SecurityAuditEndpointFilter>();
         endpoints.MapGet(
             "/api/incident-comments/{id:guid}",
             GetCommentAsync)

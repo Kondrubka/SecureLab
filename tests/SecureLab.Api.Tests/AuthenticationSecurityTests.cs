@@ -110,7 +110,7 @@ public sealed class AuthenticationSecurityTests(
         var title = $"Auth A04 {Guid.NewGuid():N}";
 
         // Створюємо інцидент без ownerUserId.
-        using var response = await client.PostAsJsonAsync(
+        using var response = await client.PostAsJsonWithCsrfAsync(
             "/api/incidents",
             new
             {
@@ -178,7 +178,7 @@ public sealed class AuthenticationSecurityTests(
         request.Headers.Add(
             "X-Demo-UserId", DbSeeder.AliceId.ToString());
 
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendWithCsrfAsync(request);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
@@ -230,8 +230,8 @@ public sealed class AuthenticationSecurityTests(
         Assert.Equal(HttpStatusCode.OK, before.StatusCode);
 
         // Виконуємо logout.
-        using var logout = await client.PostAsync(
-            "/api/auth/logout", null);
+        using var logout = await client.PostWithCsrfAsync(
+            "/api/auth/logout");
 
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 

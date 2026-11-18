@@ -33,7 +33,7 @@ public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
             occurredAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1)
         };
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await client.PostAsJsonWithCsrfAsync(
             "/api/incidents",
             request);
 
@@ -66,7 +66,7 @@ public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
 
         try
         {
-            using var firstResponse = await client.PostAsJsonAsync(
+            using var firstResponse = await client.PostAsJsonWithCsrfAsync(
                 "/api/incidents",
                 request);
 
@@ -79,7 +79,7 @@ public sealed class Lab02GoodLevelTests : IClassFixture<SecureLabApiFactory>
 
             createdId = firstContent.Id;
 
-            using var secondResponse = await client.PostAsJsonAsync(
+            using var secondResponse = await client.PostAsJsonWithCsrfAsync(
                 "/api/incidents",
                 request);
 
