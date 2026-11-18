@@ -1,3 +1,4 @@
+using SecureLab.Api.Presentation.Security;
 using Microsoft.AspNetCore.Identity;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
@@ -166,7 +167,7 @@ public static class Lab03Identity
             await signInManager.SignOutAsync();
 
             return Results.NoContent();
-        }).RequireAuthorization();
+        }).RequireAuthorization().AddEndpointFilter<CsrfEndpointFilter>().AddEndpointFilter<SecurityAuditEndpointFilter>();
 
         app.MapGet("/api/me", GetCurrentUser)
     .RequireAuthorization();

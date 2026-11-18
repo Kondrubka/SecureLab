@@ -121,7 +121,7 @@ element("incidentForm").addEventListener("submit", async event => {
         JSON.stringify(request, null, 2));
 
     try {
-        const response = await fetch("/api/incidents", {
+        const response = await window.secureLabCsrfFetch("/api/incidents", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "same-origin",
@@ -138,7 +138,7 @@ element("incidentForm").addEventListener("submit", async event => {
 // Серверний вихід і повторна перевірка профілю.
 element("logoutButton").addEventListener("click", async () => {
     try {
-        const response = await fetch("/api/auth/logout", {
+        const response = await window.secureLabCsrfFetch("/api/auth/logout", {
             method: "POST",
             credentials: "same-origin"
         });

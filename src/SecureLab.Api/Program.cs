@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Antiforgery;
 using SecureLab.Api.Scaffolding;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -14,6 +15,10 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 });
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-SecureLab-CSRF";
+});
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddCors(options =>
@@ -45,13 +50,14 @@ builder.Services.AddRateLimiter(options =>
 
     options.OnRejected = (context, cancellationToken) =>
     {
+        var isSearch = context.HttpContext.Request.Path.StartsWithSegments("/api/incidents/search");
         var logger = context.HttpContext.RequestServices
             .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("SecureLab.Auth");
+            .CreateLogger(isSearch ? "SecureLab.Search" : "SecureLab.Auth");
 
         logger.LogWarning(
-            "Authentication event {EventType} {Result} {TraceId}",
-            "Login",
+            "Rate limit event {EventType} {Result} {TraceId}",
+            isSearch ? "Search" : "Login",
             "RateLimited",
             context.HttpContext.TraceIdentifier);
 
@@ -62,6 +68,27 @@ builder.Services.AddRateLimiter(options =>
     };
 
 
+    options.AddPolicy("search-limit", context =>
+    {
+        var userId = context.User.Identity?.IsAuthenticated == true
+            ? context.User.FindFirst(
+                System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            : null;
+
+        var key = !string.IsNullOrWhiteSpace(userId)
+            ? $"user:{userId}"
+            : $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: key,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromSeconds(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
     options.AddPolicy("login-limit", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey:
@@ -132,9 +159,10 @@ if (app.Environment.IsDevelopment())
     app.UseCors("Lab05BrowserProbe");
 }
 
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
+app.UseAntiforgery();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -149,9 +177,23 @@ app.MapGet("/health", async (SecureLabDbContext dbContext, CancellationToken can
     .Produces(StatusCodes.Status200OK)
     .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
+app.MapGet("/api/auth/csrf-token",
+    (HttpContext context, IAntiforgery antiforgery) =>
+    {
+        var tokens = antiforgery.GetAndStoreTokens(context);
+
+        context.Response.Headers.CacheControl = "no-store";
+
+        return Results.Ok(new { token = tokens.RequestToken });
+    })
+    .RequireAuthorization();
 app.MapIncidentEndpoints();
 app.MapLab03Identity();
 app.MapLab02Endpoints();
+app.Map("/api/{**path}", () =>
+    Results.Problem(
+        title: "API endpoint not found",
+        statusCode: StatusCodes.Status404NotFound));
 app.MapFallbackToFile("index.html");
 
 app.Run();
